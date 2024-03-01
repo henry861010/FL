@@ -4,7 +4,7 @@ import tensorflow as tf
 import tensorflow_federated as tff
 import numpy as np
 
-mnist_train, mnist_test = tf.keras.datasets.mnist.load_data()
+emnist_train, emnist_test = tff.simulation.datasets.emnist.load_data()
 
 # Preprocess data
 def preprocess(dataset):
@@ -12,14 +12,15 @@ def preprocess(dataset):
         return (tf.reshape(element['x'], [-1, 784]), tf.reshape(element['y'], [-1, 1]))
     return dataset.repeat().shuffle(1024).batch(20).map(batch_format_fn)
 
+           # x=tf.reshape(element['pixels'], [-1, 784]),
+           # y=tf.reshape(element['label'], [-1, 1]))
+
 # Create a simulated federated dataset
-client_data = tff.simulation.ClientData.from_clients_and_fn(
-    client_ids=["client_1", "client_2", "client_3"],
-    create_tf_dataset_for_client_fn=lambda client_id: preprocess(tf.data.Dataset.from_tensor_slices({
-        "x": mnist_train[0][client_id * 20000:(client_id + 1) * 20000],
-        "y": mnist_train[1][client_id * 20000:(client_id + 1) * 20000],
-    }))
-)
+sample_clients = emnist_train.client_ids[0:3]
+client_data = [
+      preprocess(emnist_train.create_tf_dataset_for_client(x))
+      for x in sample_clients
+  ]
 
 # Prepare federated data
 federated_train_data = [client_data.create_tf_dataset_for_client(client) for client in client_data.client_ids]
