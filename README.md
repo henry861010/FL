@@ -2,6 +2,7 @@ tensorflow-federated(TFF)
 
 tensorflow,cuda與python版本對應  https://www.tensorflow.org/install/source#gpu
 reference: https://jackfrisht.medium.com/install-nvidia-driver-via-ppa-in-ubuntu-18-04-fc9a8c4658b9
+reference: https://www.tensorflow.org/federated/install  
  * NOTE: FTT提供直接使用```pip install tensorflow-federated```安裝，但其所用tensorflow是2.3.0版本(很就)，其所對應的cuda版本是10.1而python則是3.6~3.8。直接從source build則是用tensorflow2.14.x(不接受2.15)/python3.8-3.11/cuda11.8。(cuda12目前不受TFF支援)   
  * 安裝TFF自動安裝TF(不需要先裝TF)   
 
@@ -90,14 +91,16 @@ Bazel: 6.1.0 (strictly)
             4. ``` source "venv/bin/activate" ```
             5. ``` (venv) pip install --upgrade "pip" ```
             6. ``` (venv) pip install numpy ```
-            7. ``` mkdir "/tmp/tensorflow_federated"```
-            8. ``` bazel run //tensorflow_federated/tools/python_package:build_python_package -- \ --output_dir="/tmp/tensorflow_federated ```
+            7. ``` mkdir "/tmp/tensorflow_federated" ```
+            8. ``` bazel run //tensorflow_federated/tools/python_package:build_python_package -- --output_dir="/tmp/tensorflow_federated" ```
             9. ``` deactivate ```
 	3. use 
-		1. ``` python3 -m venv "venv" ```
+		1. ``` python3.11 -m venv "venv" ```
 		2. ``` source "venv/bin/activate" ```
 		3. ``` pip install --upgrade "pip" ```
 		4. ``` pip install --upgrade "/tmp/tensorflow_federated/"*".whl" ```
+        5. ``` pip install tensorrt```
 	4. test
 		```python -c "import tensorflow_federated as tff; print(tff.federated_computation(lambda: 'Hello World')())"```
+        * if you get the error"successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero. See more at", please folloeing the tutorial in https://gist.github.com/zrruziev/b93e1292bf2ee39284f834ec7397ee9f   
 		

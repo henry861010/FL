@@ -4,8 +4,9 @@ import collections
 import time
 
 import numpy as np
+import tensorrt as trt
 import tensorflow as tf
-#import tensorflow_federated as tff
+import tensorflow_federated as tff
 
 gpu_devices = tf.config.list_physical_devices('GPU')
 print("~~~~~~~~~~~~~",tf.config.list_physical_devices())
