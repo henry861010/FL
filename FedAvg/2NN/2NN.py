@@ -1,3 +1,6 @@
+import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1'
+
 import collections
 import tensorrt as trt
 import tensorflow as tf
@@ -12,6 +15,11 @@ NUM_EPOCHS = 5
 BATCH_SIZE = 64
 SHUFFLE_BUFFER = 100
 PREFETCH_BUFFER = 10
+
+if tf.test.gpu_device_name():   # test if use gpu
+    print("*********************",f"Default GPU Device: {tf.test.gpu_device_name()}")
+else:
+    print("*********************","Please install GPU version of TF")
 
 def preprocess(dataset):
   def batch_format_fn(element):

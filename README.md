@@ -3,18 +3,18 @@ tensorflow-federated(TFF)
 tensorflow,cuda與python版本對應  https://www.tensorflow.org/install/source#gpu
 reference: https://jackfrisht.medium.com/install-nvidia-driver-via-ppa-in-ubuntu-18-04-fc9a8c4658b9
 reference: https://www.tensorflow.org/federated/install  
- * NOTE: FTT提供直接使用```pip install tensorflow-federated```安裝，但其所用tensorflow是2.3.0版本(很就)，其所對應的cuda版本是10.1而python則是3.6~3.8。直接從source build則是用tensorflow2.14.x(不接受2.15)/python3.8-3.11/cuda11.8。(cuda12目前不受TFF支援)   
+ * NOTE: FTT提供直接使用```pip install tensorflow-federated```安裝，但其所用tensorflow是2.3.0版本(很就)，其所對應的cuda版本是10.1而python則是3.6~3.8。直接從source build則是用tensorflow2.14.x(不接受2.15)/python3.8-3.11/cuda11.8。(cuda12目前不受TFF支援)   (TFF source requirements.txt: https://github.com/tensorflow/federated/blob/main/requirements.txt)
  * 安裝TFF自動安裝TF(不需要先裝TF)   
 
-
+TF-fererated: bf4436c523eb575af0139e7f436cc804586e050d
 CPU: x86-64   
 GPU: 4090  
 OS: ubuntu20.04  
 gpu driver: nvidia-driver-545  
 python: 3.11 (3.8~3.11)  
-cuda: 11.8 (strictly)  
-cudnn: 8.7 (strictly)   
-Bazel: 6.1.0 (strictly)  
+cuda: 11.8 (strictly required)  
+cudnn: 8.7 (strictly required)   
+Bazel: 6.1.0 (strictly required)  
 
 1. gpu driver
     1. 刪除所有現有安裝的driver
@@ -102,5 +102,24 @@ Bazel: 6.1.0 (strictly)
         5. ``` pip install tensorrt```
 	4. test
 		```python -c "import tensorflow_federated as tff; print(tff.federated_computation(lambda: 'Hello World')())"```
-        * if you get the error"successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero. See more at", please folloeing the tutorial in https://gist.github.com/zrruziev/b93e1292bf2ee39284f834ec7397ee9f   
-		
+---------------------------------------------------
+
+using TF-federated and pytorch at the same time:
+* version: 
+    * TF-federated - 
+        * install: followint the previous tutorial
+    * pytorch - 12.x with cuda 11.8 version(strictly required)
+        * install: ```pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118```(v2.2.1 the newest stable version 2024/3/8)
+
+* there is version conflict of typing-extensions library(pytorch reuire v4.8 and TFF require specific v4.5), to solve this issue, modify ```typing-extensions>=4.5.0,4.5.*``` to ```typing-extensions>=4.5.0``` requirements.txt in TFF source code directory 
+
+---------------------------------------------------
+
+log message:
+* ```successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero. See more at```
+    * please following the tutorial in https://gist.github.com/zrruziev/b93e1292bf2ee39284f834ec7397ee9f   
+* ```This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.To enable the following instructions: AVX2 AVX_VNNI FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.```
+    * just a message to tell you that your CPU equipped with AVX2, AVX_VNNI and FMA whuch can improve the performance when use the CPU as main device(not affect GPU user)
+    * disable message by ```import os; os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1' ``` (https://stackoverflow.com/questions/65298241/what-does-this-tensorflow-message-mean-any-side-effect-was-the-installation-su)
+* ```Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered; Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered; Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered```
+    * this issue haven't been solved right now. you can still use nvidia GPU but without cuDnn(the library to improve the DNN on cuda), it may be slower than with cuDnn.

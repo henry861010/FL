@@ -51,6 +51,14 @@ def model_fn():
       loss=tf.keras.losses.SparseCategoricalCrossentropy(),
       metrics=[tf.keras.metrics.SparseCategoricalAccuracy()])
 
+def save_model(train_state):
+  keras_model = create_keras_model_MNIST()
+  weight = training_process.get_model_weights(train_state)
+  weight = weight.trainable
+  keras_model.set_weights(weight)
+  keras_model.save('./model/')
+
+
 # Initialize the Federated Averaging process
 training_process = tff.learning.algorithms.build_weighted_fed_avg(
     model_fn,
@@ -68,7 +76,7 @@ except tf.errors.NotFoundError as e:
   pass # Ignore if the directory didn't previously exist.
 summary_writer = tf.summary.create_file_writer(logdir)
 
-NUM_ROUNDS = 200
+NUM_ROUNDS = 5
 with summary_writer.as_default():
   for round_num in range(1, NUM_ROUNDS):
     result = training_process.next(train_state, federated_train_data)
@@ -78,9 +86,6 @@ with summary_writer.as_default():
       tf.summary.scalar(name, value, step=round_num)
     print("round-",round_num,"  finish!","     [loss]:",train_metrics['client_work']['train']['loss'],"  [accuracy]:",train_metrics['client_work']['train']['sparse_categorical_accuracy'])
     print(" ")
-
-
-
-
+  save_model(train_state)
 
 
