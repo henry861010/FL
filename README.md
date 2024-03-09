@@ -1,12 +1,12 @@
 tensorflow-federated(TFF)
 
-tensorflow,cuda與python版本對應  https://www.tensorflow.org/install/source#gpu
-reference: https://jackfrisht.medium.com/install-nvidia-driver-via-ppa-in-ubuntu-18-04-fc9a8c4658b9
+tensorflow,cuda與python版本對應  https://www.tensorflow.org/install/source#gpu  
+reference: https://jackfrisht.medium.com/install-nvidia-driver-via-ppa-in-ubuntu-18-04-fc9a8c4658b9  
 reference: https://www.tensorflow.org/federated/install  
  * NOTE: FTT提供直接使用```pip install tensorflow-federated```安裝，但其所用tensorflow是2.3.0版本(很就)，其所對應的cuda版本是10.1而python則是3.6~3.8。直接從source build則是用tensorflow2.14.x(不接受2.15)/python3.8-3.11/cuda11.8。(cuda12目前不受TFF支援)   (TFF source requirements.txt: https://github.com/tensorflow/federated/blob/main/requirements.txt)
  * 安裝TFF自動安裝TF(不需要先裝TF)   
 
-TF-fererated: bf4436c523eb575af0139e7f436cc804586e050d
+TF-fererated: bf4436c523eb575af0139e7f436cc804586e050d  
 CPU: x86-64   
 GPU: 4090  
 OS: ubuntu20.04  

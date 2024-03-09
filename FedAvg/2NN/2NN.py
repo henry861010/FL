@@ -22,6 +22,7 @@ else:
     print("*********************","Please install GPU version of TF")
 
 def preprocess(dataset):
+  print("+++ ",dataset)
   def batch_format_fn(element):
     """Flatten a batch `pixels` and return the features as an `OrderedDict`."""
     return collections.OrderedDict(
