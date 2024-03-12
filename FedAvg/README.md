@@ -24,9 +24,14 @@ the implement of FedAvg algorithm (from https://arxiv.org/abs/1602.05629 )
                     1. ```MNIST```: MNIST dataset( 28*28(256) -> 1(10) )
                     2. ```CIFAR10```: CIFAR10 datset( 32*32(256) -> 1(10) )
                     3. ```CIFAR100```: CIFAR100 datste( 32*32(256) -> 1(100) )
+                    4. ```EMNIS```: EMNIS datste( 28*28(256) -> 1(10) ) ~> feature skew non-iid(for federated learning)
                 * data_split_method: the method to generate non-iid data, should be:
                     1. ```SEQUENTIAL```: spilt the sinlge dataset from source squentially
                     2. ```IID```: iid
+                    3. ```EMNIST```: non-iid(feature skew), there is no spcific non-iid setting for this method, just follow the EMNIST default setting
+                    4. ```CUSTOMIZED_NONIID```: set the non-iid setting by declare the dictionay(named noniid_config) in main.py
+                        * each row represnts the label's distribution in each client
+                        * NOTE: please ensure the same name/label in each row and column
                 * model_id: the training model type, should be:
                     1.  ```NN_fedavg-NN2```: the 2NN model provided in paper https://www.tensorflow.org/federated/api_docs/python/tff/learning/algorithms/build_weighted_fed_avg
                     2. ```CNN_fedavg-CNN```: the CNN model provided in paper https://www.tensorflow.org/federated/api_docs/python/tff/learning/algorithms/build_weighted_fed_avg
@@ -44,3 +49,6 @@ the implement of FedAvg algorithm (from https://arxiv.org/abs/1602.05629 )
         * model.py
             * used to crate the model for TFF
             * can add the customized model structure in this file
+* note
+    * preprocess後所得到的dataset length是代表有幾個batch
+        * 計算: client_dataset_size * epoch_num / batch_size

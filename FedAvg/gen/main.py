@@ -5,30 +5,38 @@ import argparse
 from agent_FL import Agent_FL
 
 if __name__ == '__main__':
-	# Initialize the parser
-	#parser = argparse.ArgumentParser(description="Run federated learning experiments.")
-	#parser.add_argument("log_name", type=int, help="log_name")
-	#args = parser.parse_args()
+	
+	noniid_config = {
+		"0": {'client0': 20, 'client1': 20, 'client2': 20, 'client3': 20, 'client4': 20, 'client5': 20, 'client6': 20, 'client7': 20, 'client8': 20, 'client9': 20},
+		"1": {'client0': 20, 'client1': 20, 'client2': 20, 'client3': 20, 'client4': 20, 'client5': 20, 'client6': 20, 'client7': 20, 'client8': 20, 'client9': 20},
+		"2": {'client0': 20, 'client1': 20, 'client2': 20, 'client3': 20, 'client4': 20, 'client5': 20, 'client6': 20, 'client7': 20, 'client8': 20, 'client9': 20},
+		"3": {'client0': 20, 'client1': 20, 'client2': 20, 'client3': 20, 'client4': 20, 'client5': 20, 'client6': 20, 'client7': 20, 'client8': 20, 'client9': 20},
+		"4": {'client0': 20, 'client1': 20, 'client2': 20, 'client3': 20, 'client4': 20, 'client5': 20, 'client6': 20, 'client7': 20, 'client8': 20, 'client9': 20},
+		"5": {'client0': 20, 'client1': 20, 'client2': 20, 'client3': 20, 'client4': 20, 'client5': 20, 'client6': 20, 'client7': 20, 'client8': 20, 'client9': 20},
+		"6": {'client0': 20, 'client1': 20, 'client2': 20, 'client3': 20, 'client4': 20, 'client5': 20, 'client6': 20, 'client7': 20, 'client8': 20, 'client9': 20},
+		"7": {'client0': 20, 'client1': 20, 'client2': 20, 'client3': 20, 'client4': 20, 'client5': 20, 'client6': 20, 'client7': 20, 'client8': 20, 'client9': 20},
+		"8": {'client0': 20, 'client1': 20, 'client2': 20, 'client3': 20, 'client4': 20, 'client5': 20, 'client6': 20, 'client7': 20, 'client8': 20, 'client9': 20},
+		"9": {'client0': 20, 'client1': 20, 'client2': 20, 'client3': 20, 'client4': 20, 'client5': 20, 'client6': 20, 'client7': 20, 'client8': 20, 'client9': 20}
+	}
 
-
-	# my hyperparameters, you can change it as you like
-	'''
-		if save_weight_path=="" -> not save the model
-		if load_weight_path=="" -> not load the model(use random initial model weight)
-	'''
 	config = {
 		"source_type": "MNIST",
-		"data_split_method": "IID",
-		"model_id": "CNN_fedavg-CNN",
-		"client_num": 100,
-		"selected_client_num": 10,
+
+		"noniid_config": noniid_config,
+		"data_split_method": "CUSTOMIZED_NONIID",
 		"client_dataset_size": 1000,
+		"client_num":50,
+		"selected_client_num": 10,
+
+		"model_id": "CNN_fedavg-CNN",
 		"epoch_num": 10,
-		"batch_size": 64,
+		"batch_size": 32,
 		"shuffle_buffer": 100,
 		"prefetch_buffer": 10,
+
+		"rounds_num": 1,
+
 		"logdir": "./log",
-		"rounds_num": 10,
 		"load_weight_path": "",
 		"save_weight_path": ""
 }

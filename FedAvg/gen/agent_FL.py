@@ -37,8 +37,10 @@ class Agent_FL(Clients, Model):
 
         self.logdir = config['logdir']
         self.rounds_num = config['rounds_num']
-        self.client_num = config['client_num']
-        self.selected_client_num = config['selected_client_num']
+        if self.client_num > config['selected_client_num']:
+            self.selected_client_num = config['selected_client_num']
+        else:
+            self.selected_client_num = self.client_num
 
         self.training_process = tff.learning.algorithms.build_weighted_fed_avg(
             self.model_fn,
@@ -47,7 +49,8 @@ class Agent_FL(Clients, Model):
     
     def client_selection(self):
         selected_id = random.sample(range(0, self.client_num), self.selected_client_num)
-        selected_clients = [self.clients_dataset[x] for x in selected_id]
+        selected_clients = [self.clients_dataset[id] for id in selected_id]
+
         print("selected id ",selected_id)
         return selected_clients
 
