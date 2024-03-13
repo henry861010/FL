@@ -24,21 +24,26 @@ if __name__ == '__main__':
 
 		"noniid_config": noniid_config,
 		"data_split_method": "CUSTOMIZED_NONIID",
-		"client_dataset_size": 1000,
-		"client_num":50,
-		"selected_client_num": 10,
+		"client_dataset_size": 30,
+
+		"client_selection_method": "random",
+		"client_num":10,
+		"selected_client_num": 5,
 
 		"model_id": "CNN_fedavg-CNN",
-		"epoch_num": 10,
+		"local_rounds_num": 3,
 		"batch_size": 32,
 		"shuffle_buffer": 100,
 		"prefetch_buffer": 10,
 
-		"rounds_num": 1,
+		"global_rounds_num": 5,
 
+		"experiment_rounds_num": 4,
+		"experiment_id": "fedavg",
+		
 		"logdir": "./log",
 		"load_weight_path": "",
-		"save_weight_path": ""
+		"save_weight_path": "",
 }
 	agent = Agent_FL(config)
 	agent.train()

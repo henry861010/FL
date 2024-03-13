@@ -31,7 +31,7 @@ class Clients:
 
         # model setting
         self.model_id = config["model_id"]
-        self.epoch_num = config["epoch_num"]
+        self.local_rounds_num = config["local_rounds_num"]
         self.batch_size = config["batch_size"]
         self.shuffle_buffer = config["shuffle_buffer"]
         self.prefetch_buffer = config["prefetch_buffer"]
@@ -159,7 +159,7 @@ class Clients:
                 return collections.OrderedDict(
                     x=tf.reshape(element['pixels'], [-1, self.input_width, self.input_length, 1]), 
                     y=tf.reshape(element['label'], [-1, 1]))
-        return dataset.repeat(self.epoch_num).shuffle(self.shuffle_buffer, seed=1).batch(
+        return dataset.repeat(self.local_rounds_num).shuffle(self.shuffle_buffer, seed=1).batch(
             self.batch_size).map(batch_format_fn, num_parallel_calls=tf.data.AUTOTUNE).prefetch(self.prefetch_buffer)
 
     # create the clients which data is splited by squential method
