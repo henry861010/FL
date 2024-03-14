@@ -40,34 +40,37 @@ class Agent_FL(Clients, Model, Recorder):
         self.logdir = config['logdir']
         self.global_rounds_num = config['global_rounds_num']
         self.experiment_rounds_num = config['experiment_rounds_num']
+
         if self.client_num > config['selected_client_num']:
             self.selected_client_num = config['selected_client_num']
         else:
             self.selected_client_num = self.client_num
+
         self.client_selection_method = config['client_selection_method']
 
         self.training_process = None
+
+    def evaluation(self, train_state):
+        keras_model_test = self.create_keras_model()
+        keras_model_test.compile(optimizer='adam',
+              loss='sparse_categorical_crossentropy',
+              metrics=['accuracy'])
+        model_weights = self.training_process.get_model_weights(train_state)
+        model_weights.assign_weights_to(keras_model_test)
+        loss, accuracy = keras_model_test.evaluate(self.dataset_testing_pre, verbose=0)
+        print(f"testing Loss: {loss}, Accuracy: {accuracy}")
     
     def client_selection(self):
-        #if self.client_selection_method == "average_random":
-        selected_id = random.sample(range(0, self.client_num), self.selected_client_num)
-        selected_clients = [self.clients_dataset[id] for id in selected_id]
+        selected_clients = []
+        if self.client_selection_method == "AVG_RANDOM":
+            selected_id = random.sample(range(0, self.client_num), self.selected_client_num)
+            selected_clients = [self.clients_dataset[id] for id in selected_id]
+        elif self.client_selection_method =="":
+            selected_id = random.sample(range(0, self.client_num), self.selected_client_num)
+            selected_clients = [self.clients_dataset[id] for id in selected_id]    
         print("selected id ",selected_id)
         return selected_clients
 
-    def keras_evaluate(self, state, round_num):
-        # https://www.tensorflow.org/federated/tutorials/federated_learning_for_text_generation
-        # Take our global model weights and push them back into a Keras model to
-        # use its standard `.evaluate()` method.
-        keras_model = self.model_fn
-        keras_model.compile(
-            loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
-            metrics=[FlattenedCategoricalAccuracy()])
-        model_weights = self.training_process.get_model_weights(state)
-        model_weights.assign_weights_to(keras_model)
-        loss, accuracy = keras_model.evaluate(self.dataset_testing, steps=2, verbose=0)
-        print('\tEval: loss={l:.3f}, accuracy={a:.3f}'.format(l=loss, a=accuracy))
-        
     def train(self):
         summary_writer = tf.summary.create_file_writer( self.logdir+"/"+self.experiment_id+"/tensorboard/" )
 
@@ -75,9 +78,9 @@ class Agent_FL(Clients, Model, Recorder):
 
         for experiment_round in range(len(self.record), self.experiment_rounds_num):
             # initial traing state
-            print("***start the experiment ",experiment_round)
+            print("---------------- start the experiment ",experiment_round," -----------------")
 
-            self.self.training_process = tff.learning.algorithms.build_weighted_fed_avg(
+            self.training_process = tff.learning.algorithms.build_weighted_fed_avg(
                 self.model_fn,
                 client_optimizer_fn=lambda: tf.keras.optimizers.SGD(learning_rate=0.02),
                 server_optimizer_fn=lambda: tf.keras.optimizers.SGD(learning_rate=1.0))
@@ -95,11 +98,14 @@ class Agent_FL(Clients, Model, Recorder):
                 # update the state(include model weight)
                 train_state = result.state
 
+                # evaluation
+                self.evaluation(train_state)
                 # write log
                 write_log(summary_writer, round_num, result.metrics)
                 self.add(experiment_round, round_num, result.metrics['client_work']['train']['sparse_categorical_accuracy'])
+            self.save_evaluation()  
         self.save_polt(-1)
-        self.save_evaluation()
+        
 
                 
     

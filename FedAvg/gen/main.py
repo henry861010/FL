@@ -26,7 +26,7 @@ if __name__ == '__main__':
 		"data_split_method": "CUSTOMIZED_NONIID",
 		"client_dataset_size": 30,
 
-		"client_selection_method": "random",
+		"client_selection_method": "AVG_RANDOM",
 		"client_num":10,
 		"selected_client_num": 5,
 

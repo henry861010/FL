@@ -44,6 +44,7 @@ class Clients:
         self.output_size = None
 
         self.clients_dataset = None
+        self.dataset_training_pre = None
         self.clients_condition = None
 
         # load the datasets and generate the clients
@@ -67,56 +68,61 @@ class Clients:
         elif self.source_type == "EMNIST":
             self.__generate_emnist()
 
-    # MNIST dataset. input space:28*28, output space: 10 
-    def __generate_mnist(self):
-        mnist = tf.keras.datasets.mnist
-        (x_train, y_train), (x_test, y_test) = mnist.load_data()
-
+        dataset_testing_pre = tf.data.Dataset.from_tensor_slices(self.dataset_testing)
+        self.dataset_testing_pre = dataset_testing_pre.batch(64) 
+    
+    def __reshape_dataset(self, x_train, y_train, x_test, y_test):
         x_train = x_train.astype(np.float32)
         y_train = y_train.astype(np.int32)
         x_test = x_test.astype(np.float32)
         y_test = y_test.astype(np.int32)
 
         x_train, x_test = x_train / 255.0, x_test / 255.0
+    
+        if self.model_id.startswith("NN"):
+            x_train=x_train.reshape(-1, self.input_width*self.input_length)
+            x_test=x_test.reshape(-1, self.input_width*self.input_length)
+        else:
+            x_train=x_train.reshape(-1, self.input_width, self.input_length, 1)
+            x_test=x_test.reshape(-1, self.input_width, self.input_length, 1)
+
         self.dataset_training = (x_train, y_train)
         self.dataset_testing = (x_test, y_test)
+        
+
+    # MNIST dataset. input space:28*28, output space: 10 
+    def __generate_mnist(self):
+        mnist = tf.keras.datasets.mnist
+        (x_train, y_train), (x_test, y_test) = mnist.load_data()
+
         self.input_width = 28
         self.input_length = 28
         self.output_size = 10
+
+        self.__reshape_dataset(x_train, y_train, x_test, y_test)
+
     
     # CIFAR10 dataset. input space:32*32, output space: 10
     def __generate_cifar10(self):
         cifar10 = tf.keras.datasets.cifar10
         (x_train, y_train), (x_test, y_test) = cifar10.load_data()
 
-        x_train = x_train.astype(np.float32)
-        y_train = y_train.astype(np.int32)
-        x_test = x_test.astype(np.float32)
-        y_test = y_test.astype(np.int32)
-
-        x_train, x_test = x_train / 255.0, x_test / 255.0
-        self.dataset_training = (x_train, y_train)
-        self.dataset_testing = (x_test, y_test)
         self.input_width = 32
         self.input_length = 32
         self.output_size = 10
+
+        self.__reshape_dataset(x_train, y_train, x_test, y_test)
 
     # CIFAR100 dataset. input space:32*32, output space: 100
     def __generate_cifar100(self):  
         cifar100 = tf.keras.datasets.cifar100  
         (x_train, y_train), (x_test, y_test) = cifar100.load_data()
 
-        x_train = x_train.astype(np.float32)
-        y_train = y_train.astype(np.int32)
-        x_test = x_test.astype(np.float32)
-        y_test = y_test.astype(np.int32)
-
-        x_train, x_test = x_train / 255.0, x_test / 255.0
-        self.dataset_training = (x_train, y_train)
-        self.dataset_testing = (x_test, y_test)
         self.input_width = 32
         self.input_length = 32
         self.output_size = 100
+
+        self.__reshape_dataset(x_train, y_train, x_test, y_test)
     
     # EMNIST dataset. input space:28*28, output space: 10 (feature skew)
     def __generate_emnist(self):
@@ -149,7 +155,7 @@ class Clients:
             self.__generate_client_noniid_customized()  
     
     def __preprocess(self, dataset):
-        #print("+++ ",dataset)
+        # print("+++ ",dataset)
         def batch_format_fn(element):
             if self.model_id.startswith("NN"):
                 return collections.OrderedDict(

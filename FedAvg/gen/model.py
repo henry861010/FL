@@ -19,8 +19,8 @@ class Model:
         self.weight = None
         self.keras_model = None
         self.FTT_model = None
-    
-    def save_model(self, train_state):
+
+    def save_model(self, training_process, train_state):
         if(self.save_weight_path!=""):
             print("*** save the model !!!")
             weight = training_process.get_model_weights(train_state)
@@ -34,15 +34,15 @@ class Model:
             self.keras_model = tf.keras.models.load_model(self.load_weight_path)
             self.weight =  self.keras_model.get_weights()
 
+    def create_keras_model(self):
+        if self.model_id == "NN_fedavg-NN2":
+            return self.__create_model_fedavg_NN2()
+        elif self.model_id == "CNN_fedavg-CNN":
+            return self.__create_model_fedavg_CNN()
+    
     def model_fn(self):
-        def create_keras_model():
-            if self.model_id == "NN_fedavg-NN2":
-                return self.__create_model_fedavg_NN2()
-            elif self.model_id == "CNN_fedavg-CNN":
-                return self.__create_model_fedavg_CNN()
-
         # create the model
-        self.keras_model = create_keras_model()
+        self.keras_model = self.create_keras_model()
 
         # laod the pre-trained model weight
         self.load_model()
@@ -73,3 +73,4 @@ class Model:
             tf.keras.layers.Dense(512, activation='relu'),
             tf.keras.layers.Dense(self.output_size, activation='softmax')
         ])
+
