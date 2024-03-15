@@ -19,8 +19,7 @@ class Clients:
         # source dataset setting
         self.source_type = config["source_type"] # MNIST/CIFAR10/CIFAR100
         self.data_split_method = config["data_split_method"] # SEQUENTIAL/IID
-        self.client_names =  list(next(iter(self.noniid_config.values())).keys())
-        self.label_space = list(self.noniid_config.keys())
+        self.client_names = [str(i) for i in self.client_num]
         
         #client setting
         if self.data_split_method == "CUSTOMIZED_NONIID":
@@ -42,6 +41,7 @@ class Clients:
         self.input_width = None
         self.input_length = None
         self.output_size = None
+        self.label_names = None
 
         self.clients_dataset = None
         self.dataset_training_pre = None
@@ -78,16 +78,24 @@ class Clients:
         y_test = y_test.astype(np.int32)
 
         x_train, x_test = x_train / 255.0, x_test / 255.0
+
+        if self.source_type == "MNIST" or self.source_type == "MNIST":
+            node = 1
+        else:
+            node = 3
     
         if self.model_id.startswith("NN"):
-            x_train=x_train.reshape(-1, self.input_width*self.input_length)
-            x_test=x_test.reshape(-1, self.input_width*self.input_length)
+            x_train=x_train.reshape(-1, self.input_width*self.input_length*node)
+            x_test=x_test.reshape(-1, self.input_width*self.input_length*node)
         else:
-            x_train=x_train.reshape(-1, self.input_width, self.input_length, 1)
-            x_test=x_test.reshape(-1, self.input_width, self.input_length, 1)
+            x_train=x_train.reshape(-1, self.input_width, self.input_length, node)
+            x_test=x_test.reshape(-1, self.input_width, self.input_length, node)
 
         self.dataset_training = (x_train, y_train)
         self.dataset_testing = (x_test, y_test)
+
+        print("---",y_test[0])
+        print("---",type(y_test[0]))
         
 
     # MNIST dataset. input space:28*28, output space: 10 
@@ -98,6 +106,7 @@ class Clients:
         self.input_width = 28
         self.input_length = 28
         self.output_size = 10
+        self.label_names = ['0','1','2','3','4','5','6','7','8','9']
 
         self.__reshape_dataset(x_train, y_train, x_test, y_test)
 
@@ -110,6 +119,10 @@ class Clients:
         self.input_width = 32
         self.input_length = 32
         self.output_size = 10
+        self.label_names = ['0','1','2','3','4','5','6','7','8','9']
+
+        y_train = np.array([ i[0] for i in y_train])
+        y_test = np.array([ i[0] for i in y_test])
 
         self.__reshape_dataset(x_train, y_train, x_test, y_test)
 
@@ -121,7 +134,11 @@ class Clients:
         self.input_width = 32
         self.input_length = 32
         self.output_size = 100
+        self.label_names = ['0','1','2','3','4','5','6','7','8','9']
 
+        y_train = np.array([ i[0] for i in y_train])
+        y_test = np.array([ i[0] for i in y_test])
+        
         self.__reshape_dataset(x_train, y_train, x_test, y_test)
     
     # EMNIST dataset. input space:28*28, output space: 10 (feature skew)
@@ -143,6 +160,8 @@ class Clients:
             2. IID
             3. EMNIST
             4. CUSTOMIZED_NONIID
+            5. NON-IID_label2
+            6. NON-IID_label1
     """
     def generate_client(self):
         if self.source_type == "EMNIST":
@@ -153,6 +172,8 @@ class Clients:
             self.__generate_client_iid()  
         elif self.data_split_method == "CUSTOMIZED_NONIID":
             self.__generate_client_noniid_customized()  
+        elif self.data_split_method == "NON_IID_label2":
+            self.__generate_client_noniid_label2() 
     
     def __preprocess(self, dataset):
         # print("+++ ",dataset)
@@ -200,8 +221,8 @@ class Clients:
         for i in range(self.client_num):
             client_name = "client_" + str(i)
             subset = collections.OrderedDict([
-                ('label', y[i * client_size:(i + 1) * client_size]),
-                ('pixels', x[i * client_size:(i + 1) * client_size])
+                ('label', y_shuffled[i * client_size:(i + 1) * client_size]),
+                ('pixels', x_shuffled[i * client_size:(i + 1) * client_size])
             ])
             datasets_temp[client_name] = subset
         datasets_temp_tff = tff.simulation.datasets.TestClientData(datasets_temp)
@@ -216,12 +237,14 @@ class Clients:
     
     # create the feature skew non-iid clients following the nonid-config configuration
     def __generate_client_noniid_customized(self):
+        self.client_names =  list(next(iter(self.noniid_config.values())).keys())
+
         x, y = self.dataset_training
         datasets_temp = {}
 
         # split the dateset to the group by the label(smaple in the same group with the same label)
-        pixels_group = {i: [] for i in self.label_space}
-        label_group = {i: [] for i in self.label_space}
+        pixels_group = {i: [] for i in len(self.label_names)}
+        label_group = {i: [] for i in len(self.label_names)}
         for x, y in zip(x, y):
             pixels_group[str(y)].append(x)
             label_group[str(y)].append(y)
@@ -235,6 +258,67 @@ class Clients:
                 datasets_temp[client_name]['label'].extend(label_group[label][index:index+client_size])
                 datasets_temp[client_name]['pixels'].extend(pixels_group[label][index:index+client_size])
                 index = index + client_size
+
+        # randomize each client's dataset and convert the list to OrderedDict
+        datasets_temp_onder = collections.OrderedDict()
+        for client_name in self.client_names:
+            indices = np.arange(len(datasets_temp[client_name]['pixels']))
+            np.random.shuffle(indices)
+            x = np.array(datasets_temp[client_name]['pixels'])
+            y = np.array(datasets_temp[client_name]['label'])
+            subset = collections.OrderedDict([
+                ('label', y[indices] ),
+                ('pixels', x[indices] )
+            ])
+            datasets_temp_onder[client_name] = subset
+        datasets_temp_tff = tff.simulation.datasets.TestClientData(datasets_temp_onder)
+        self.clients_dataset = [self.__preprocess(datasets_temp_tff.create_tf_dataset_for_client(x)) for x in datasets_temp_tff.client_ids]
+        self.element_spec = self.clients_dataset[0].element_spec
+        log_client_info(datasets_temp_onder, self.clients_dataset)
+
+    def __generate_client_noniid_label2(self):
+        label_per_client = 2
+        client_size = self.client_dataset_size/label_per_client
+    
+        x, y = self.dataset_training
+        datasets_temp = {}
+
+        permutations = []
+        label_usage = [0 for _ in self.output_size]
+
+        # C^x_y = get_permutations(0,y+1,x+1,0)
+        def get_permutations(i, k, l, temp):
+            temp = temp*10 + i
+            if k==1:
+                permutations.append(temp)
+            elif i<l:
+                for j in range(i+1,l):
+                    get_permutations(j, k-1, l, temp)
+        get_permutations(0, label_per_client+1, self.output_size+1, 0 )
+                
+        # split the dateset to the group by the label(smaple in the same group with the same label)
+        pixels_group = {i: [] for i in len(self.label_names)}
+        label_group = {i: [] for i in len(self.label_names)}
+        for label in len(self.label_names):
+            indices = np.where(y == int(label))[0]
+            pixels_group[label] = x[indices] 
+            label_group[label] = y[indices] 
+
+        # add the sampel to each client by the noniid_config
+        for index, client_name in enumerate(self.client_names):
+            permutations_index = index % len(permutations)
+            for dim in label_per_client:
+                if dim!=0:
+                    label = permutations[permutations_index]/(10**dim)%10
+                else:
+                    label = permutations[permutations_index]%10
+
+                head = label_usage[str(label)]
+                tail = label_usage[str(label)] + client_size
+                label_usage[str(label)] = tail
+            
+                datasets_temp[client_name]['label'].extend(label_group[label][head:tail])
+                datasets_temp[client_name]['pixels'].extend(pixels_group[label][head:tail])
 
         # randomize each client's dataset and convert the list to OrderedDict
         datasets_temp_onder = collections.OrderedDict()

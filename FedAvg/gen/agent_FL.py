@@ -20,13 +20,6 @@ def check_client_dataset_formate(datasets, id):
     num_samples = sum(1 for _ in datasets.create_tf_dataset_for_client(datasets.client_ids[id]))
     print("the length of the client's dataset: ",num_samples)
 
-def write_log(summary_writer, round_num, metrics):
-    print("round-",round_num,"  finish!","   [loss]:",metrics['client_work']['train']['loss'],"  [accuracy]:",metrics['client_work']['train']['sparse_categorical_accuracy'])
-    print("")
-    with summary_writer.as_default():
-        for name, value in metrics['client_work']['train'].items():
-            tf.summary.scalar(name, value, step=round_num)
-
 
 class Agent_FL(Clients, Model, Recorder):
     def __init__(self, config):
@@ -50,26 +43,16 @@ class Agent_FL(Clients, Model, Recorder):
 
         self.training_process = None
 
-    def evaluation(self, train_state):
-        keras_model_test = self.create_keras_model()
-        keras_model_test.compile(optimizer='adam',
-              loss='sparse_categorical_crossentropy',
-              metrics=['accuracy'])
-        model_weights = self.training_process.get_model_weights(train_state)
-        model_weights.assign_weights_to(keras_model_test)
-        loss, accuracy = keras_model_test.evaluate(self.dataset_testing_pre, verbose=0)
-        print(f"testing Loss: {loss}, Accuracy: {accuracy}")
-    
     def client_selection(self):
         selected_clients = []
         if self.client_selection_method == "AVG_RANDOM":
             selected_id = random.sample(range(0, self.client_num), self.selected_client_num)
             selected_clients = [self.clients_dataset[id] for id in selected_id]
-        elif self.client_selection_method =="":
+        elif self.client_selection_method =="CUSTOM_RANDOM":
             selected_id = random.sample(range(0, self.client_num), self.selected_client_num)
             selected_clients = [self.clients_dataset[id] for id in selected_id]    
         print("selected id ",selected_id)
-        return selected_clients
+        return selected_clients, selected_id
 
     def train(self):
         summary_writer = tf.summary.create_file_writer( self.logdir+"/"+self.experiment_id+"/tensorboard/" )
@@ -77,9 +60,9 @@ class Agent_FL(Clients, Model, Recorder):
         self.load_evaluation()
 
         for experiment_round in range(len(self.record), self.experiment_rounds_num):
-            # initial traing state
             print("---------------- start the experiment ",experiment_round," -----------------")
 
+            # initial traing state
             self.training_process = tff.learning.algorithms.build_weighted_fed_avg(
                 self.model_fn,
                 client_optimizer_fn=lambda: tf.keras.optimizers.SGD(learning_rate=0.02),
@@ -90,7 +73,7 @@ class Agent_FL(Clients, Model, Recorder):
             # begin the training
             for round_num in range(1, self.global_rounds_num):
                 # client selection
-                selected_clients = self.client_selection()
+                selected_clients, selection_id = self.client_selection()
                 
                 # run one glbal iteration
                 result = self.training_process.next(train_state, selected_clients)
@@ -99,12 +82,34 @@ class Agent_FL(Clients, Model, Recorder):
                 train_state = result.state
 
                 # evaluation
-                self.evaluation(train_state)
-                # write log
-                write_log(summary_writer, round_num, result.metrics)
-                self.add(experiment_round, round_num, result.metrics['client_work']['train']['sparse_categorical_accuracy'])
+                self.evaluation(result, round_num, experiment_round, summary_writer, selection_id)
+                
+                print("")
             self.save_evaluation()  
         self.save_polt(-1)
+    
+    def evaluation(self, result, round_num, experiment_round, summary_writer, selection):
+        # matrics evaluated from training dataset
+        loss_training = result.metrics['client_work']['train']['loss']
+        accuracy_training = result.metrics['client_work']['train']['sparse_categorical_accuracy']
+        print(f"round-{round_num} training dataset evaluation  [Loss]:{format(loss_training, '.5f')} [Accuracy]:{format(accuracy_training, '.5f')}")
+
+        # matrics evaluated from testing dataset
+        train_state = result.state
+        keras_model = self.create_keras_model()
+        keras_model.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
+        model_weights = self.training_process.get_model_weights(train_state)
+        model_weights.assign_weights_to(keras_model)
+        loss_testing, accuracy_testing = keras_model.evaluate(self.dataset_testing_pre, verbose=0)
+        print(f"round-{round_num} testing dataset evaluation   [Loss]:{format(loss_testing, '.5f')} [Accuracy]:{format(accuracy_testing, '.5f')}")
+    
+        # write log
+        with summary_writer.as_default():
+            for name, value in result.metrics['client_work']['train'].items():
+                tf.summary.scalar(name, value, step=round_num)
+
+        # add to  he evaluation recorder
+        self.add(experiment_round, round_num, accuracy_testing, selection)
         
 
                 

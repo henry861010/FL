@@ -12,8 +12,8 @@ class Recorder:
         self.logdir = config['logdir']
 
         self.init_plot()
-        self.record = [] # [{"epoch":[],"accuracy":[]},{},{},...]
-        self.average = {"epoch":[],"accuracy":[]}
+        self.record = [] # [{"epoch":[],"accuracy":[], "selection":[[],[],[],...]},{},{},...]
+        self.average = {"epoch":[],"accuracy":[], "selection":[]}
 
     # Initialize your plot
     def init_plot(self):
@@ -73,11 +73,12 @@ class Recorder:
         plt.ioff()  # Turn off the interactive mode
         plt.show()  
     
-    def add(self, experiment_round, epoch, accuracy):
+    def add(self, experiment_round, epoch, accuracy, selection):
         if experiment_round == len(self.record):
-            self.record.append({"epoch":[],"accuracy":[]})
+            self.record.append({"epoch":[],"accuracy":[], "selection": []})
         self.record[experiment_round]['epoch'].append(epoch)
         self.record[experiment_round]['accuracy'].append(accuracy)
+        self.record[experiment_round]['selection'].append(selection)
     
     def __average(self):
         epoch = 0
