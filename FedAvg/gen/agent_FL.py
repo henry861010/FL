@@ -3,11 +3,11 @@ import tensorrt as trt
 import tensorflow as tf
 import tensorflow_federated as tff
 import numpy as np
-import random
 
 from clients import Clients
 from model import Model
 from record import Recorder
+from selector import Selector
 
 def check_GPU_state():
     if tf.test.gpu_device_name():   # test if use gpu
@@ -21,7 +21,7 @@ def check_client_dataset_formate(datasets, id):
     print("the length of the client's dataset: ",num_samples)
 
 
-class Agent_FL(Clients, Model, Recorder):
+class Agent_FL(Clients, Model, Recorder, Selector):
     def __init__(self, config):
 
         check_GPU_state()
@@ -29,30 +29,13 @@ class Agent_FL(Clients, Model, Recorder):
         Clients.__init__( self, config)
         Model.__init__( self, config, self.input_width, self.input_length, self.output_size, self.element_spec)
         Recorder.__init__( self, config)
+        Selector.__init__( self, config)
 
         self.logdir = config['logdir']
         self.global_rounds_num = config['global_rounds_num']
         self.experiment_rounds_num = config['experiment_rounds_num']
 
-        if self.client_num > config['selected_client_num']:
-            self.selected_client_num = config['selected_client_num']
-        else:
-            self.selected_client_num = self.client_num
-
-        self.client_selection_method = config['client_selection_method']
-
         self.training_process = None
-
-    def client_selection(self):
-        selected_clients = []
-        if self.client_selection_method == "AVG_RANDOM":
-            selected_id = random.sample(range(0, self.client_num), self.selected_client_num)
-            selected_clients = [self.clients_dataset[id] for id in selected_id]
-        elif self.client_selection_method =="CUSTOM_RANDOM":
-            selected_id = random.sample(range(0, self.client_num), self.selected_client_num)
-            selected_clients = [self.clients_dataset[id] for id in selected_id]    
-        print("selected id ",selected_id)
-        return selected_clients, selected_id
 
     def train(self):
         summary_writer = tf.summary.create_file_writer( self.logdir+"/"+self.experiment_id+"/tensorboard/" )
@@ -73,7 +56,8 @@ class Agent_FL(Clients, Model, Recorder):
             # begin the training
             for round_num in range(1, self.global_rounds_num):
                 # client selection
-                selected_clients, selection_id = self.client_selection()
+                client_states = []
+                selected_clients, selected_ids = self.client_selection(client_states)
                 
                 # run one glbal iteration
                 result = self.training_process.next(train_state, selected_clients)
@@ -82,7 +66,7 @@ class Agent_FL(Clients, Model, Recorder):
                 train_state = result.state
 
                 # evaluation
-                self.evaluation(result, round_num, experiment_round, summary_writer, selection_id)
+                self.evaluation(result, round_num, experiment_round, summary_writer, selected_ids)
                 
                 print("")
             self.save_evaluation()  
@@ -111,6 +95,7 @@ class Agent_FL(Clients, Model, Recorder):
         # add to  he evaluation recorder
         self.add(experiment_round, round_num, accuracy_testing, selection)
         
-
+        # return the evaluation for RL agent
+        return []
                 
     

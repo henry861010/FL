@@ -20,14 +20,14 @@ if __name__ == '__main__':
 	}
 
 	config = {
-		"source_type": "CIFAR100",
+		"source_type": "CIFAR10",
 
 		"noniid_config": noniid_config,
-		"data_split_method": "NON_IID_label2",
+		"data_split_method": "NON_IID_label_2",
 		"client_dataset_size": 200,
 
 		"client_selection_method": "AVG_RANDOM",
-		"client_num":10,
+		"client_num":20,
 		"selected_client_num": 5,
 
 		"model_id": "CNN_fedavg-CNN",

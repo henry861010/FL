@@ -3,6 +3,8 @@ import tensorrt as trt
 import tensorflow as tf
 import tensorflow_federated as tff
 import numpy as np
+import math
+import re
 
 def log_client_info(datasets, clients_traing_batch):
     index = 0
@@ -19,7 +21,6 @@ class Clients:
         # source dataset setting
         self.source_type = config["source_type"] # MNIST/CIFAR10/CIFAR100
         self.data_split_method = config["data_split_method"] # SEQUENTIAL/IID
-        self.client_names = [str(i) for i in self.client_num]
         
         #client setting
         if self.data_split_method == "CUSTOMIZED_NONIID":
@@ -27,6 +28,7 @@ class Clients:
         else:
             self.client_num = config["client_num"]
         self.client_dataset_size = config["client_dataset_size"]
+        self.client_names = [str(i) for i in range(self.client_num)]
 
         # model setting
         self.model_id = config["model_id"]
@@ -93,9 +95,6 @@ class Clients:
 
         self.dataset_training = (x_train, y_train)
         self.dataset_testing = (x_test, y_test)
-
-        print("---",y_test[0])
-        print("---",type(y_test[0]))
         
 
     # MNIST dataset. input space:28*28, output space: 10 
@@ -152,7 +151,6 @@ class Clients:
         self.client_num = len(self.dataset_training.client_ids)
 
         dataset = emnist_train.create_tf_dataset_for_client(self.dataset_training.client_ids[0])
-        print("^^^^^^^",len(list(dataset)))
 
     """
         generate self.client_num clients by specific method, optional:
@@ -172,8 +170,8 @@ class Clients:
             self.__generate_client_iid()  
         elif self.data_split_method == "CUSTOMIZED_NONIID":
             self.__generate_client_noniid_customized()  
-        elif self.data_split_method == "NON_IID_label2":
-            self.__generate_client_noniid_label2() 
+        elif "NON_IID_label" in self.data_split_method:
+            self.__generate_client_noniid_label() 
     
     def __preprocess(self, dataset):
         # print("+++ ",dataset)
@@ -206,6 +204,7 @@ class Clients:
         datasets_temp_tff = tff.simulation.datasets.TestClientData(datasets_temp)
         self.clients_dataset = [self.__preprocess(datasets_temp_tff.create_tf_dataset_for_client(x)) for x in datasets_temp_tff.client_ids]
         self.element_spec = self.clients_dataset[0].element_spec
+
         log_client_info(datasets_temp, self.clients_dataset)
     
     # create the clients which data is splited by iid method
@@ -228,6 +227,7 @@ class Clients:
         datasets_temp_tff = tff.simulation.datasets.TestClientData(datasets_temp)
         self.clients_dataset = [self.__preprocess(datasets_temp_tff.create_tf_dataset_for_client(x)) for x in datasets_temp_tff.client_ids]
         self.element_spec = self.clients_dataset[0].element_spec
+
         log_client_info(datasets_temp, self.clients_dataset)
 
     # create the clients which data is splited by feature-skew non-iid
@@ -235,16 +235,16 @@ class Clients:
         self.clients_dataset = [self.__preprocess(self.dataset_training.create_tf_dataset_for_client(x)) for x in self.dataset_training.client_ids] 
         self.element_spec = self.clients_dataset[0].element_spec
     
-    # create the feature skew non-iid clients following the nonid-config configuration
+    # create the label skew non-iid clients following the nonid-config configuration
     def __generate_client_noniid_customized(self):
         self.client_names =  list(next(iter(self.noniid_config.values())).keys())
 
         x, y = self.dataset_training
-        datasets_temp = {}
+        datasets_temp = {client_name: {'label': [], 'pixels': []} for client_name in self.client_names}
 
         # split the dateset to the group by the label(smaple in the same group with the same label)
-        pixels_group = {i: [] for i in len(self.label_names)}
-        label_group = {i: [] for i in len(self.label_names)}
+        pixels_group = {i: [] for i in self.label_names}
+        label_group = {i: [] for i in self.label_names}
         for x, y in zip(x, y):
             pixels_group[str(y)].append(x)
             label_group[str(y)].append(y)
@@ -253,8 +253,6 @@ class Clients:
         for label, sample_dist_of_label in self.noniid_config.items():
             index = 0
             for client_name, client_size in sample_dist_of_label.items():
-                if client_name not in datasets_temp:
-                    datasets_temp[client_name] = {'label': [], 'pixels': []}
                 datasets_temp[client_name]['label'].extend(label_group[label][index:index+client_size])
                 datasets_temp[client_name]['pixels'].extend(pixels_group[label][index:index+client_size])
                 index = index + client_size
@@ -274,49 +272,57 @@ class Clients:
         datasets_temp_tff = tff.simulation.datasets.TestClientData(datasets_temp_onder)
         self.clients_dataset = [self.__preprocess(datasets_temp_tff.create_tf_dataset_for_client(x)) for x in datasets_temp_tff.client_ids]
         self.element_spec = self.clients_dataset[0].element_spec
+
         log_client_info(datasets_temp_onder, self.clients_dataset)
 
-    def __generate_client_noniid_label2(self):
-        label_per_client = 2
-        client_size = self.client_dataset_size/label_per_client
+    # create the label skew non-iid clients by specify each client with only k label
+    def __generate_client_noniid_label(self):
+        match = re.search(r'NON_IID_label_(\d+)', self.data_split_method)
+        label_per_client = int(match.group(1))
+
+        label_size = math.ceil(self.client_dataset_size/label_per_client)
     
         x, y = self.dataset_training
-        datasets_temp = {}
+        datasets_temp = {client_name: {'label': [], 'pixels': []} for client_name in self.client_names}
 
-        permutations = []
-        label_usage = [0 for _ in self.output_size]
+        label_permutations = []
+        label_usage = {label:0 for label in self.label_names}
 
-        # C^x_y = get_permutations(0,y+1,x+1,0)
-        def get_permutations(i, k, l, temp):
-            temp = temp*10 + i
-            if k==1:
-                permutations.append(temp)
-            elif i<l:
-                for j in range(i+1,l):
-                    get_permutations(j, k-1, l, temp)
-        get_permutations(0, label_per_client+1, self.output_size+1, 0 )
+        # C^x_y = get_permutations(y,x)
+        def get_permutations(k, l):
+            l = l+1
+            def loop(i, k, l, temp):
+                if k==1:
+                    temp = temp + str(i)
+                    label_permutations.append(temp)
+                elif i<l:
+                    temp = temp + str(i) + ","
+                    for j in range(i+1,l):
+                        loop(j, k-1, l, temp)
+            for i in range(1,l):
+                loop(i, k, l, "")
+        get_permutations(label_per_client, len(self.label_names))
                 
         # split the dateset to the group by the label(smaple in the same group with the same label)
-        pixels_group = {i: [] for i in len(self.label_names)}
-        label_group = {i: [] for i in len(self.label_names)}
-        for label in len(self.label_names):
+        pixels_group = {i: [] for i in self.label_names}
+        label_group = {i: [] for i in self.label_names}
+        for label in self.label_names:
             indices = np.where(y == int(label))[0]
             pixels_group[label] = x[indices] 
             label_group[label] = y[indices] 
 
+
         # add the sampel to each client by the noniid_config
         for index, client_name in enumerate(self.client_names):
-            permutations_index = index % len(permutations)
-            for dim in label_per_client:
-                if dim!=0:
-                    label = permutations[permutations_index]/(10**dim)%10
-                else:
-                    label = permutations[permutations_index]%10
+            permutations_index = index % len(label_permutations)
+            labels = label_permutations[permutations_index].split(",")
+            for label in labels:
+                label = str(int(label)-1)
 
-                head = label_usage[str(label)]
-                tail = label_usage[str(label)] + client_size
-                label_usage[str(label)] = tail
-            
+                head = label_usage[label]
+                tail = label_usage[label] + label_size
+                label_usage[label] = tail
+
                 datasets_temp[client_name]['label'].extend(label_group[label][head:tail])
                 datasets_temp[client_name]['pixels'].extend(pixels_group[label][head:tail])
 
@@ -335,4 +341,5 @@ class Clients:
         datasets_temp_tff = tff.simulation.datasets.TestClientData(datasets_temp_onder)
         self.clients_dataset = [self.__preprocess(datasets_temp_tff.create_tf_dataset_for_client(x)) for x in datasets_temp_tff.client_ids]
         self.element_spec = self.clients_dataset[0].element_spec
+
         log_client_info(datasets_temp_onder, self.clients_dataset)
