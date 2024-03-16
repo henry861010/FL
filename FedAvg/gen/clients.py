@@ -47,7 +47,7 @@ class Clients:
         self.label_names = None
 
         self.clients_dataset = None
-        self.dataset_training_pre = None
+        self.dataset_testing_pre = None
         self.clients_condition = None
 
         # load the datasets and generate the clients
@@ -70,9 +70,6 @@ class Clients:
             self.__generate_cifar100()
         elif self.source_type == "EMNIST":
             self.__generate_emnist()
-
-        dataset_testing_pre = tf.data.Dataset.from_tensor_slices(self.dataset_testing)
-        self.dataset_testing_pre = dataset_testing_pre.batch(64) 
     
     def __reshape_dataset(self, x_train, y_train, x_test, y_test):
         x_train = x_train.astype(np.float32)
@@ -91,6 +88,9 @@ class Clients:
 
         self.dataset_training = (x_train, y_train)
         self.dataset_testing = (x_test, y_test)
+
+        dataset_testing_pre = tf.data.Dataset.from_tensor_slices(self.dataset_testing)
+        self.dataset_testing_pre = dataset_testing_pre.batch(64) 
         
 
     # MNIST dataset. input space:28*28, output space: 10 
@@ -147,6 +147,8 @@ class Clients:
         self.client_num = len(self.dataset_training.client_ids)
 
         dataset = emnist_train.create_tf_dataset_for_client(self.dataset_training.client_ids[0])
+
+        self.dataset_testing_pre = emnist_test
 
     """
         generate self.client_num clients by specific method, optional:

@@ -20,7 +20,7 @@ noniid_config = {
 	"9": {'c0': 20, 'c1': 20, 'c2': 20, 'c3': 20, 'c4': 20, 'c5': 20, 'c6': 20, 'c7': 20, 'c8': 20, 'c9': 20}
 }
 
-config = {
+_config = {
 	"source_type": "CIFAR10",
 
 	"noniid_config": noniid_config,
@@ -52,10 +52,14 @@ def load_config(config_path):
         return json.load(f)
 
 def main():
-    if len(sys.argv) == 3:
+    config = _config
+    if len(sys.argv) == 2:
         config_path = sys.argv[1]
         with open(config_path) as f:
             config = json.load(f)
+        print("use the config:")
+        for key, item in config.items():
+            print(f"	[{key}]: {item}")
     
     agent = Agent_FL(config)
     agent.train()
