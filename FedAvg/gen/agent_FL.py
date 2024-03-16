@@ -27,13 +27,14 @@ class Agent_FL(Clients, Model, Recorder, Selector):
         check_GPU_state()
 
         Clients.__init__( self, config)
-        Model.__init__( self, config, self.input_width, self.input_length, self.output_size, self.element_spec)
+        Model.__init__( self, config, self.input_width, self.input_length, self.input_height, self.output_size, self.element_spec)
         Recorder.__init__( self, config)
         Selector.__init__( self, config)
 
         self.logdir = config['logdir']
         self.global_rounds_num = config['global_rounds_num']
         self.experiment_rounds_num = config['experiment_rounds_num']
+        self.selected_client_num = config['selected_client_num']
 
         self.training_process = None
 
@@ -55,9 +56,14 @@ class Agent_FL(Clients, Model, Recorder, Selector):
 
             # begin the training
             for round_num in range(1, self.global_rounds_num):
+
                 # client selection
-                client_states = []
-                selected_clients, selected_ids = self.client_selection(client_states)
+                client_states = {}
+                fl_state = {"round_num": round_num}
+
+                selected_ids = self.client_selection(client_states, fl_state)
+                selected_clients = [self.clients_dataset[id] for id in selected_ids]
+                print(f"round-{round_num} selected number: {len(selected_ids)}")
                 
                 # run one glbal iteration
                 result = self.training_process.next(train_state, selected_clients)

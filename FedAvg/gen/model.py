@@ -6,10 +6,11 @@ import numpy as np
 
 
 class Model:
-    def __init__(self, config, input_width, input_length, output_size, element_spec):
+    def __init__(self, config, input_width, input_length, input_height, output_size, element_spec):
         self.input_width = input_width
         self.input_length = input_length
         self.output_size = output_size
+        self.input_height = input_height
         # model setting
         self.model_id = config["model_id"]
         self.load_weight_path = config["load_weight_path"]
@@ -56,7 +57,7 @@ class Model:
 
     def __create_model_fedavg_NN2(self):
         return tf.keras.models.Sequential([
-            tf.keras.layers.Input(shape=(self.input_width*self.input_length,)),
+            tf.keras.layers.Input(shape=(self.input_width*self.input_length*self.input_height,)),
             tf.keras.layers.Dense(200, activation='relu'),
             tf.keras.layers.Dense(200, activation='relu'),
             tf.keras.layers.Dense(200, activation='relu'),
@@ -65,7 +66,7 @@ class Model:
 
     def __create_model_fedavg_CNN(self):
         return tf.keras.models.Sequential([
-            tf.keras.layers.Conv2D(32, kernel_size=(5, 5), activation='relu', input_shape=(self.input_width, self.input_length, 1)),
+            tf.keras.layers.Conv2D(32, kernel_size=(5, 5), activation='relu', input_shape=(self.input_width, self.input_length, self.input_height)),
             tf.keras.layers.MaxPooling2D(pool_size=(2, 2)),
             tf.keras.layers.Conv2D(64, (5, 5), activation='relu'),
             tf.keras.layers.MaxPooling2D(pool_size=(2, 2)),

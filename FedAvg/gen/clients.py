@@ -42,6 +42,7 @@ class Clients:
         self.element_spec = None
         self.input_width = None
         self.input_length = None
+        self.input_height = None
         self.output_size = None
         self.label_names = None
 
@@ -80,18 +81,13 @@ class Clients:
         y_test = y_test.astype(np.int32)
 
         x_train, x_test = x_train / 255.0, x_test / 255.0
-
-        if self.source_type == "MNIST" or self.source_type == "MNIST":
-            node = 1
-        else:
-            node = 3
     
         if self.model_id.startswith("NN"):
-            x_train=x_train.reshape(-1, self.input_width*self.input_length*node)
-            x_test=x_test.reshape(-1, self.input_width*self.input_length*node)
+            x_train=x_train.reshape(-1, self.input_width*self.input_length*self.input_height)
+            x_test=x_test.reshape(-1, self.input_width*self.input_length*self.input_height)
         else:
-            x_train=x_train.reshape(-1, self.input_width, self.input_length, node)
-            x_test=x_test.reshape(-1, self.input_width, self.input_length, node)
+            x_train=x_train.reshape(-1, self.input_width, self.input_length, self.input_height)
+            x_test=x_test.reshape(-1, self.input_width, self.input_length, self.input_height)
 
         self.dataset_training = (x_train, y_train)
         self.dataset_testing = (x_test, y_test)
@@ -104,8 +100,9 @@ class Clients:
 
         self.input_width = 28
         self.input_length = 28
+        self.input_height = 1
         self.output_size = 10
-        self.label_names = ['0','1','2','3','4','5','6','7','8','9']
+        self.label_names = [str(i) for i in range(self.output_size)]
 
         self.__reshape_dataset(x_train, y_train, x_test, y_test)
 
@@ -117,11 +114,9 @@ class Clients:
 
         self.input_width = 32
         self.input_length = 32
+        self.input_height = 3
         self.output_size = 10
-        self.label_names = ['0','1','2','3','4','5','6','7','8','9']
-
-        y_train = np.array([ i[0] for i in y_train])
-        y_test = np.array([ i[0] for i in y_test])
+        self.label_names = [str(i) for i in range(self.output_size)]
 
         self.__reshape_dataset(x_train, y_train, x_test, y_test)
 
@@ -132,11 +127,9 @@ class Clients:
 
         self.input_width = 32
         self.input_length = 32
+        self.input_height = 3
         self.output_size = 100
-        self.label_names = ['0','1','2','3','4','5','6','7','8','9']
-
-        y_train = np.array([ i[0] for i in y_train])
-        y_test = np.array([ i[0] for i in y_test])
+        self.label_names = [str(i) for i in range(self.output_size)]
         
         self.__reshape_dataset(x_train, y_train, x_test, y_test)
     
@@ -147,7 +140,10 @@ class Clients:
         self.dataset_testing = emnist_test
         self.input_width = 28
         self.input_length = 28
+        self.input_height = 1
         self.output_size = 10
+        self.label_names = [str(i) for i in range(self.output_size)]
+        
         self.client_num = len(self.dataset_training.client_ids)
 
         dataset = emnist_train.create_tf_dataset_for_client(self.dataset_training.client_ids[0])
@@ -178,11 +174,11 @@ class Clients:
         def batch_format_fn(element):
             if self.model_id.startswith("NN"):
                 return collections.OrderedDict(
-                    x=tf.reshape(element['pixels'], [-1, self.input_width*self.input_length]),
+                    x=tf.reshape(element['pixels'], [-1, self.input_width*self.input_length*self.input_height]),
                     y=tf.reshape(element['label'], [-1, 1]))
             else:
                 return collections.OrderedDict(
-                    x=tf.reshape(element['pixels'], [-1, self.input_width, self.input_length, 1]), 
+                    x=tf.reshape(element['pixels'], [-1, self.input_width, self.input_length, self.input_height]), 
                     y=tf.reshape(element['label'], [-1, 1]))
         return dataset.repeat(self.local_rounds_num).shuffle(self.shuffle_buffer, seed=1).batch(
             self.batch_size).map(batch_format_fn, num_parallel_calls=tf.data.AUTOTUNE).prefetch(self.prefetch_buffer)
