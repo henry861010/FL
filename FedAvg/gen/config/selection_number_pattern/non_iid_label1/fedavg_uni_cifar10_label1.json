@@ -1,0 +1,27 @@
+{
+    "noniid_config": {},
+
+	"source_type": "CIFAR10",
+
+	"data_split_method": "NON_IID_label_1",
+	"client_dataset_size": 200,
+
+	"client_selection_method": "FEDAVG_UNI",
+	"client_num":90,
+	"selected_client_num": 10,
+
+	"model_id": "CNN_fedavg-CNN",
+	"local_rounds_num": 5,
+	"batch_size": 32,
+	"shuffle_buffer": 100,
+	"prefetch_buffer": 10,
+
+	"global_rounds_num": 350,
+
+	"experiment_rounds_num": 20,
+	"experiment_id": "fedavg_uni_cifar10_label1",
+	
+	"logdir": "./log/selection_number_pattern/non_iid_label1",
+	"load_weight_path": "",
+	"save_weight_path": ""
+}
