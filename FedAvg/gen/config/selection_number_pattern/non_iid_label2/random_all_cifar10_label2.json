@@ -1,9 +1,9 @@
 {
     "noniid_config": {},
 
-	"source_type": "EMNIST",
+	"source_type": "CIFAR10",
 
-	"data_split_method": "EMNIST",
+	"data_split_method": "NON_IID_label_2",
 	"client_dataset_size": 200,
 
 	"client_selection_method": "FEDAVG_UNI",
@@ -14,14 +14,14 @@
 	"local_rounds_num": 5,
 	"batch_size": 32,
 	"shuffle_buffer": 100,
-	"prefetch_buffer": 10,
+	"prefetch_buffer": 6,
 
-	"global_rounds_num": 500,
+	"global_rounds_num": 1000,
 
 	"experiment_rounds_num": 5,
-	"experiment_id": "fedavg_all_emnist_emnist",
+	"experiment_id": "random_all_cifar10_label2",
 	
-	"logdir": "./log/selection_number_pattern/emnist",
+	"logdir": "./log/selection_number_pattern/non_iid_label2",
 	"load_weight_path": "",
 	"save_weight_path": ""
 }

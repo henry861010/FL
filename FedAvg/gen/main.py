@@ -1,10 +1,10 @@
 import os
+import signal
 import sys
 import json
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1'
 
-import argparse
 from agent_FL import Agent_FL
 
 noniid_config = {
@@ -47,6 +47,12 @@ _config = {
 	"save_weight_path": "",
 }
 
+def signal_handler(sig, frame):
+    print('Cleaning up... memory')
+    # Perform cleanup here
+    sys.exit(0)
+signal.signal(signal.SIGINT, signal_handler)
+
 def load_config(config_path):
     with open(config_path) as f:
         return json.load(f)
@@ -63,6 +69,7 @@ def main():
     
     agent = Agent_FL(config)
     agent.train()
+    sys.exit(0)
 
 if __name__ == '__main__':
     main()

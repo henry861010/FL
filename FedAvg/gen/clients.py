@@ -5,6 +5,7 @@ import tensorflow_federated as tff
 import numpy as np
 import math
 import re
+import random
 
 def log_client_info(datasets, clients_traing_batch):
     index = 0
@@ -40,15 +41,15 @@ class Clients:
         self.dataset_training = None    #(training_sample, training_label)
         self.dataset_testing = None     #(testing_sample, testing_label)
         self.element_spec = None
-        self.input_width = None
-        self.input_length = None
-        self.input_height = None
-        self.output_size = None
-        self.label_names = None
+        self.input_width = None     # the width of the sample image
+        self.input_length = None    # the length of the sample image
+        self.input_height = None    # the height of the sample image (RGB-3, gray-1)
+        self.output_size = None     # the label type (MNIST/CIFAR10-10, CIFAR100-100)
+        self.label_names = None     # the label name
 
-        self.clients_dataset = None
-        self.dataset_testing_pre = None
-        self.clients_condition = None
+        self.clients_dataset = None # the preprocess tff clients' dataset
+        self.dataset_testing_pre = None # reshape dataset
+        self.clients_info = None # the info of the clients' about the its dataset
 
         # load the datasets and generate the clients
         self.generate_dataset()
@@ -170,6 +171,8 @@ class Clients:
             self.__generate_client_noniid_customized()  
         elif "NON_IID_label" in self.data_split_method:
             self.__generate_client_noniid_label() 
+        elif "NON_IID_MIX" in self.data_split_method:
+            self.__generate_client_noniid_mix_label()
     
     def __preprocess(self, dataset):
         # print("+++ ",dataset)
@@ -323,6 +326,88 @@ class Clients:
 
                 datasets_temp[client_name]['label'].extend(label_group[label][head:tail])
                 datasets_temp[client_name]['pixels'].extend(pixels_group[label][head:tail])
+
+        # randomize each client's dataset and convert the list to OrderedDict
+        datasets_temp_onder = collections.OrderedDict()
+        for client_name in self.client_names:
+            indices = np.arange(len(datasets_temp[client_name]['pixels']))
+            np.random.shuffle(indices)
+            x = np.array(datasets_temp[client_name]['pixels'])
+            y = np.array(datasets_temp[client_name]['label'])
+            subset = collections.OrderedDict([
+                ('label', y[indices] ),
+                ('pixels', x[indices] )
+            ])
+            datasets_temp_onder[client_name] = subset
+        datasets_temp_tff = tff.simulation.datasets.TestClientData(datasets_temp_onder)
+        self.clients_dataset = [self.__preprocess(datasets_temp_tff.create_tf_dataset_for_client(x)) for x in datasets_temp_tff.client_ids]
+        self.element_spec = self.clients_dataset[0].element_spec
+
+        log_client_info(datasets_temp_onder, self.clients_dataset)
+
+    # create the label skew non-iid clients by specify each client with only k label
+    def __generate_client_noniid_mix_label(self):
+        match = re.search(r'NON_IID_MIX_(\d+)_LABEL_(\d+)', self.data_split_method)
+        label_per_client = int(match.group(2))
+        percentage_of_iid = int(match.group(1))
+
+        self.clients_info = {"percentage_of_iid": percentage_of_iid}
+        print(f"percentage_of_iid: {percentage_of_iid}   label_per_client: {label_per_client}")
+
+        label_size = math.ceil(self.client_dataset_size/label_per_client)
+    
+        x, y = self.dataset_training
+        datasets_temp = {client_name: {'label': [], 'pixels': []} for client_name in self.client_names}
+
+        label_permutations = []
+        label_usage = {label:0 for label in self.label_names}
+
+        # C^x_y = get_permutations(y,x)
+        def get_permutations(k, l):
+            l = l+1
+            def loop(i, k, l, temp):
+                if k==1:
+                    temp = temp + str(i)
+                    label_permutations.append(temp)
+                elif i<l:
+                    temp = temp + str(i) + ","
+                    for j in range(i+1,l):
+                        loop(j, k-1, l, temp)
+            for i in range(1,l):
+                loop(i, k, l, "")
+        get_permutations(label_per_client, len(self.label_names))
+                
+        # split the dateset to the group by the label(smaple in the same group with the same label)
+        pixels_group = {i: [] for i in self.label_names}
+        label_group = {i: [] for i in self.label_names}
+        for label in self.label_names:
+            indices = np.where(y == int(label))[0]
+            pixels_group[label] = x[indices] 
+            label_group[label] = y[indices] 
+
+
+        # add the sampel to each client by the noniid_config
+
+        iid_client_num = math.floor(percentage_of_iid*len(self.client_names)/100)
+
+        for index, client_name in enumerate(self.client_names):
+            if index>=iid_client_num:  ###non-iid with label_x 
+                permutations_index = index % len(label_permutations)
+                labels = label_permutations[permutations_index].split(",")
+                for label in labels:
+                    label = str(int(label)-1)
+                    head = label_usage[label]
+                    tail = label_usage[label] + label_size
+                    label_usage[label] = tail
+                    datasets_temp[client_name]['label'].extend(label_group[label][head:tail])
+                    datasets_temp[client_name]['pixels'].extend(pixels_group[label][head:tail])
+            else: ###iid
+                for label in self.label_names:
+                    head = label_usage[label]
+                    tail = label_usage[label] + int(self.client_dataset_size/len(self.label_names))
+                    label_usage[label] = tail
+                    datasets_temp[client_name]['label'].extend(label_group[label][head:tail])
+                    datasets_temp[client_name]['pixels'].extend(pixels_group[label][head:tail])
 
         # randomize each client's dataset and convert the list to OrderedDict
         datasets_temp_onder = collections.OrderedDict()

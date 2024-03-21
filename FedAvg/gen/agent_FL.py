@@ -1,4 +1,5 @@
-import collections
+import os
+import psutil
 import tensorrt as trt
 import tensorflow as tf
 import tensorflow_federated as tff
@@ -21,6 +22,12 @@ def check_client_dataset_formate(datasets, id):
     print("the length of the client's dataset: ",num_samples)
 
 
+def memory_usage_now(tag):
+    process = psutil.Process(os.getpid())
+    memory_usage_bytes = process.memory_info().rss
+    memory_usage_mb = memory_usage_bytes / (1024 ** 2)
+    print(f"*********  {tag}  memory usage MB: {memory_usage_mb}")
+
 class Agent_FL(Clients, Model, Recorder, Selector):
     def __init__(self, config):
 
@@ -35,6 +42,7 @@ class Agent_FL(Clients, Model, Recorder, Selector):
         self.global_rounds_num = config['global_rounds_num']
         self.experiment_rounds_num = config['experiment_rounds_num']
         self.selected_client_num = config['selected_client_num']
+        self.experiment_id = config["experiment_id"]
 
         self.training_process = None
 
@@ -43,7 +51,9 @@ class Agent_FL(Clients, Model, Recorder, Selector):
 
         self.load_evaluation()
 
+        print("len(self.record):", len(self.record))
         for experiment_round in range(len(self.record), self.experiment_rounds_num):
+            self.experiment_round = experiment_round
             print("---------------- start the experiment ",experiment_round," -----------------")
 
             # initial traing state
@@ -59,11 +69,11 @@ class Agent_FL(Clients, Model, Recorder, Selector):
 
                 # client selection
                 client_states = {}
-                fl_state = {"round_num": round_num}
+                fl_state = {"round_num": round_num, "clients_info": self.clients_info}
 
                 selected_ids = self.client_selection(client_states, fl_state)
                 selected_clients = [self.clients_dataset[id] for id in selected_ids]
-                print(f"round-{round_num} selected number: {len(selected_ids)}")
+                print(f"{self.experiment_id}-exp{experiment_round} round-{round_num}:")
                 
                 # run one glbal iteration
                 result = self.training_process.next(train_state, selected_clients)
@@ -75,8 +85,8 @@ class Agent_FL(Clients, Model, Recorder, Selector):
                 self.evaluation(result, round_num, experiment_round, summary_writer, selected_ids)
                 
                 print("")
-            self.save_evaluation()  
-        self.save_polt(-1)
+            self.save_model(self.training_process, train_state, experiment_round)
+            self.save_evaluation() 
     
     def evaluation(self, result, round_num, experiment_round, summary_writer, selection):
         # matrics evaluated from training dataset

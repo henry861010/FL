@@ -1,3 +1,4 @@
+import os
 import collections
 import tensorrt as trt
 import tensorflow as tf
@@ -21,19 +22,16 @@ class Model:
         self.keras_model = None
         self.FTT_model = None
 
-    def save_model(self, training_process, train_state):
+    def save_model(self, training_process, train_state, experiment_round):
         if(self.save_weight_path!=""):
-            print("*** save the model !!!")
-            weight = training_process.get_model_weights(train_state)
-            self.weight = weight.trainable
-            self.keras_model.set_weights(self.weight)
-            self.keras_model.save(self.save_weight_path)  # SavedModel format
+            keras_model = self.create_keras_model()
+            keras_model.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
+            model_weights = self.training_process.get_model_weights(train_state)
+            model_weights.assign_weights_to(keras_model)
+
+            weight_name = "weight_exp_"+str(experiment_round)
+            keras_model.save(self.save_weight_path+"/"+self.experiment_id+"/model/"+weight_name)  # SavedModel format
     
-    def load_model(self):
-        if(self.load_weight_path!=""):
-            print("*** load the model !!!")
-            self.keras_model = tf.keras.models.load_model(self.load_weight_path)
-            self.weight =  self.keras_model.get_weights()
 
     def create_keras_model(self):
         if self.model_id == "NN_fedavg-NN2":
@@ -46,7 +44,12 @@ class Model:
         self.keras_model = self.create_keras_model()
 
         # laod the pre-trained model weight
-        self.load_model()
+        weight_name = "weight_exp_"+str(self.experiment_round)
+        file_path = os.path.join( self.save_weight_path+"/"+self.experiment_id+"/model/",weight_name )
+
+        #if os.path.isdir(file_path):
+        #    print("there is!!!!!!!!!!!!!!!!!!!!!")
+        #    self.keras_model = tf.keras.models.load_model(file_path)
 
         self.FTT_model =  tff.learning.models.from_keras_model(
             self.keras_model,
