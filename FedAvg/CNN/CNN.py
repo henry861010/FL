@@ -68,6 +68,7 @@ training_process = tff.learning.algorithms.build_weighted_fed_avg(
 # Initialize the server state
 train_state = training_process.initialize()
 
+'''
 # Run a few rounds of adaptation
 logdir = "./log"
 try:
@@ -86,5 +87,15 @@ with summary_writer.as_default():
       tf.summary.scalar(name, value, step=round_num)
     print("round-",round_num,"  finish!","     [loss]:",train_metrics['client_work']['train']['loss'],"  [accuracy]:",train_metrics['client_work']['train']['sparse_categorical_accuracy'])
     print(" ")
+'''
+
+NUM_ROUNDS = 100
+for round_num in range(1, NUM_ROUNDS):
+  result = training_process.next(train_state, federated_train_data)
+  train_state = result.state
+  train_metrics = result.metrics
+  print("round-",round_num,"  finish!","     [loss]:",train_metrics['client_work']['train']['loss'],"  [accuracy]:",train_metrics['client_work']['train']['sparse_categorical_accuracy'])
+  print(" ")
+sys.exit(0)
 
 

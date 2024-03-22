@@ -84,9 +84,6 @@ class Selector:
         round_num = fl_state["round_num"]
         percentage_of_iid = fl_state["clients_info"]["percentage_of_iid"]
 
-        print("round_num: ",round_num)
-        print("percentage_of_iid: ",percentage_of_iid)
-
         iid_client_num = math.floor(percentage_of_iid*len(self.client_names)/100)
         change_round = math.floor(percentage_of_iid*self.global_rounds_num/100)
 
@@ -99,9 +96,6 @@ class Selector:
     def __noniid_iid_random(self, fl_state):
         round_num = fl_state["round_num"]
         percentage_of_iid = fl_state["clients_info"]["percentage_of_iid"]
-
-        print("round_num: ",round_num)
-        print("percentage_of_iid: ",percentage_of_iid)
 
         iid_client_num = math.floor(percentage_of_iid*len(self.client_names)/100)
         change_round = math.floor(percentage_of_iid*self.global_rounds_num/100)

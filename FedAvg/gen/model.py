@@ -15,7 +15,7 @@ class Model:
         # model setting
         self.model_id = config["model_id"]
         self.load_weight_path = config["load_weight_path"]
-        self.save_weight_path = config["save_weight_path"]
+        self.logdir = config["logdir"]
         self.element_spec = element_spec
 
         self.weight = None
@@ -23,15 +23,13 @@ class Model:
         self.FTT_model = None
 
     def save_model(self, training_process, train_state, experiment_round):
-        if(self.save_weight_path!=""):
-            keras_model = self.create_keras_model()
-            keras_model.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
-            model_weights = self.training_process.get_model_weights(train_state)
-            model_weights.assign_weights_to(keras_model)
+        keras_model = self.create_keras_model()
+        model_weights = self.training_process.get_model_weights(train_state)
+        model_weights.assign_weights_to(keras_model)
 
-            weight_name = "weight_exp_"+str(experiment_round)
-            keras_model.save(self.save_weight_path+"/"+self.experiment_id+"/model/"+weight_name)  # SavedModel format
-    
+        weight_name = "exp_"+str(experiment_round)
+        keras_model.save(self.logdir+"/"+self.experiment_id+"/model/"+weight_name)  # SavedModel format
+
 
     def create_keras_model(self):
         if self.model_id == "NN_fedavg-NN2":
@@ -42,14 +40,6 @@ class Model:
     def model_fn(self):
         # create the model
         self.keras_model = self.create_keras_model()
-
-        # laod the pre-trained model weight
-        weight_name = "weight_exp_"+str(self.experiment_round)
-        file_path = os.path.join( self.save_weight_path+"/"+self.experiment_id+"/model/",weight_name )
-
-        #if os.path.isdir(file_path):
-        #    print("there is!!!!!!!!!!!!!!!!!!!!!")
-        #    self.keras_model = tf.keras.models.load_model(file_path)
 
         self.FTT_model =  tff.learning.models.from_keras_model(
             self.keras_model,

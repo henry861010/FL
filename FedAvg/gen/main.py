@@ -2,6 +2,7 @@ import os
 import signal
 import sys
 import json
+import gc
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1'
 
@@ -47,11 +48,13 @@ _config = {
 	"save_weight_path": "",
 }
 
+
 def signal_handler(sig, frame):
-    print('Cleaning up... memory')
-    # Perform cleanup here
+    print("kill the subprocess of gRPC server which lack the suitable recycle machine by TFF")
+    # /home/aaslab/henry/FL/venv/lib/python3.11/site-packages/tensorflow_federated/python/core/impl/executor_stacks/executor_factory.py
     sys.exit(0)
 signal.signal(signal.SIGINT, signal_handler)
+process_pid = 0
 
 def load_config(config_path):
     with open(config_path) as f:
@@ -69,6 +72,10 @@ def main():
     
     agent = Agent_FL(config)
     agent.train()
+    
+    gc.collect()
+    os.kill(process_pid, signal.SIGINT)
+    #os.kill(process_pid, signal.SIGKILL)
     sys.exit(0)
 
 if __name__ == '__main__':

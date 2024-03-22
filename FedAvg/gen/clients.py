@@ -87,8 +87,14 @@ class Clients:
             x_train=x_train.reshape(-1, self.input_width, self.input_length, self.input_height)
             x_test=x_test.reshape(-1, self.input_width, self.input_length, self.input_height)
 
+        indices = np.random.choice(len(x_test), size=int(len(x_test)/4), replace=False)
+        x_test = x_test[indices]
+        y_test = y_test[indices]
+
         self.dataset_training = (x_train, y_train)
         self.dataset_testing = (x_test, y_test)
+
+
 
         dataset_testing_pre = tf.data.Dataset.from_tensor_slices(self.dataset_testing)
         self.dataset_testing_pre = dataset_testing_pre.batch(64) 

@@ -51,7 +51,6 @@ class Agent_FL(Clients, Model, Recorder, Selector):
 
         self.load_evaluation()
 
-        print("len(self.record):", len(self.record))
         for experiment_round in range(len(self.record), self.experiment_rounds_num):
             self.experiment_round = experiment_round
             print("---------------- start the experiment ",experiment_round," -----------------")
@@ -65,7 +64,7 @@ class Agent_FL(Clients, Model, Recorder, Selector):
             train_state = self.training_process.initialize()
 
             # begin the training
-            for round_num in range(1, self.global_rounds_num):
+            for round_num in range(0, self.global_rounds_num):
 
                 # client selection
                 client_states = {}
@@ -92,7 +91,7 @@ class Agent_FL(Clients, Model, Recorder, Selector):
         # matrics evaluated from training dataset
         loss_training = result.metrics['client_work']['train']['loss']
         accuracy_training = result.metrics['client_work']['train']['sparse_categorical_accuracy']
-        print(f"round-{round_num} training dataset evaluation  [Loss]:{format(loss_training, '.5f')} [Accuracy]:{format(accuracy_training, '.5f')}")
+        print(f"    training dataset evaluation  [Loss]:{format(loss_training, '.5f')} [Accuracy]:{format(accuracy_training, '.5f')}")
 
         # matrics evaluated from testing dataset
         train_state = result.state
@@ -101,7 +100,7 @@ class Agent_FL(Clients, Model, Recorder, Selector):
         model_weights = self.training_process.get_model_weights(train_state)
         model_weights.assign_weights_to(keras_model)
         loss_testing, accuracy_testing = keras_model.evaluate(self.dataset_testing_pre, verbose=0)
-        print(f"round-{round_num} testing dataset evaluation   [Loss]:{format(loss_testing, '.5f')} [Accuracy]:{format(accuracy_testing, '.5f')}")
+        print(f"    testing dataset evaluation   [Loss]:{format(loss_testing, '.5f')} [Accuracy]:{format(accuracy_testing, '.5f')}")
     
         # write log
         with summary_writer.as_default():
@@ -109,7 +108,7 @@ class Agent_FL(Clients, Model, Recorder, Selector):
                 tf.summary.scalar(name, value, step=round_num)
 
         # add to  he evaluation recorder
-        self.add(experiment_round, round_num, accuracy_testing, selection)
+        self.add(experiment_round, round_num, accuracy_testing, accuracy_training, loss_training, selection)
         
         # return the evaluation for RL agent
         return []

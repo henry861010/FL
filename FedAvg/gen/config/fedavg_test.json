@@ -18,7 +18,7 @@
 	"client_dataset_size": 200,
 
 	"client_selection_method": "FEDAVG_NONIID_IID",
-	"client_num":90,
+	"client_num":10,
 	"selected_client_num": 5,
 
 	"model_id": "CNN_fedavg-CNN",
@@ -27,7 +27,7 @@
 	"shuffle_buffer": 100,
 	"prefetch_buffer": 10,
 
-	"global_rounds_num": 1000,
+	"global_rounds_num": 10,
 
 	"experiment_rounds_num": 1,
 	"experiment_id": "fedavg_test",

@@ -51,11 +51,13 @@ class Recorder:
         with open(file_path, 'w') as file:
             json.dump(self.record, file, indent=4, default=default)
 
-    def add(self, experiment_round, epoch, accuracy, selection):
+    def add(self, experiment_round, epoch, accuracy, accuracy_training, loss_training, selection):
         if experiment_round == len(self.record):
-            self.record.append({"epoch":[],"accuracy":[], "selection": []})
+            self.record.append({"epoch":[],"accuracy":[], "selection": [], "accuracy_training": [], "loss_training": []})
         self.record[experiment_round]['epoch'].append(epoch)
         self.record[experiment_round]['accuracy'].append(accuracy)
+        self.record[experiment_round]['accuracy_training'].append(accuracy_training)
+        self.record[experiment_round]['loss_training'].append(loss_training)
         self.record[experiment_round]['selection'].append(selection)
 
 # used for plot the plot
