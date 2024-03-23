@@ -4,7 +4,7 @@
 # cd /path/to/your/scripts
 
 # iid
-    python main.py ./config/selection_number_pattern/iid/random_all_cifar10_iid.json  
+    python main.py ./config/selection_number_pattern/iid/random_all_cifar10_iid.json
 
     python main.py ./config/selection_number_pattern/iid/random_asc10_cifar10_iid.json 
 

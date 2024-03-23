@@ -114,12 +114,22 @@ using TF-federated and pytorch at the same time:
 * there is version conflict of typing-extensions library(pytorch reuire v4.8 and TFF require specific v4.5), to solve this issue, modify ```typing-extensions>=4.5.0,4.5.*``` to ```typing-extensions>=4.5.0``` requirements.txt in TFF source code directory 
 
 ---------------------------------------------------
-
-log message:
-* ```successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero. See more at```
+# log message:
+1. ```successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero. See more at```
     * please following the tutorial in https://gist.github.com/zrruziev/b93e1292bf2ee39284f834ec7397ee9f   
-* ```This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.To enable the following instructions: AVX2 AVX_VNNI FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.```
+2. ```This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.To enable the following instructions: AVX2 AVX_VNNI FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.```
     * just a message to tell you that your CPU equipped with AVX2, AVX_VNNI and FMA whuch can improve the performance when use the CPU as main device(not affect GPU user)
     * disable message by ```import os; os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1' ``` (https://stackoverflow.com/questions/65298241/what-does-this-tensorflow-message-mean-any-side-effect-was-the-installation-su)
-* ```Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered; Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered; Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered```
+3. ```Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered; Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered; Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered```
     * this issue haven't been solved right now. you can still use nvidia GPU but without cuDnn(the library to improve the DNN on cuda), it may be slower than with cuDnn.
+
+# issue
+1. in the TFF library, there is gRPC created by subprocess.Popen()(child process). the TFF lack the suitable recycle mechanism to handle the child procee after your TFF program finsh, which leads the ongoning gRPC process in the background and occupy the OS resource. (find the code to create gRPC server at ```/tensorflow_federated/python/core/impl/executor_stacks/executor_factory.py``` - ```start_process()```)
+    * solution for avoiding the ongoing child process: add ```os.kill(0, signal.SIGINT)``` before you finish your main TFF program
+        * NOTE: when we send SIGINT(ex. ctrl+c), the siganl send to child process at the same time, then the child process would end. so we don't do any specific deal in main program signal handler
+    * gRPC
+        * role: 
+            1. server: the server
+            2. channel: the represent of the connection, used in stub object to send the command
+            3. stub: the interface used by the client to command the server(client side)
+        * reference: https://totoroliu.medium.com/grpc-%E6%98%AF%E4%BB%80%E9%BA%BC-aeb331ad9bc8 

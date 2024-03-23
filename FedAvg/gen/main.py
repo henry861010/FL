@@ -47,14 +47,13 @@ _config = {
 	"load_weight_path": "",
 	"save_weight_path": "",
 }
-
+global process_pid
+process_pid = 0
 
 def signal_handler(sig, frame):
-    print("kill the subprocess of gRPC server which lack the suitable recycle machine by TFF")
-    # /home/aaslab/henry/FL/venv/lib/python3.11/site-packages/tensorflow_federated/python/core/impl/executor_stacks/executor_factory.py
+    gc.collect()
     sys.exit(0)
 signal.signal(signal.SIGINT, signal_handler)
-process_pid = 0
 
 def load_config(config_path):
     with open(config_path) as f:
@@ -74,8 +73,7 @@ def main():
     agent.train()
     
     gc.collect()
-    os.kill(process_pid, signal.SIGINT)
-    #os.kill(process_pid, signal.SIGKILL)
+    os.kill(0, signal.SIGINT)  ### !!!!!
     sys.exit(0)
 
 if __name__ == '__main__':

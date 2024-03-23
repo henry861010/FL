@@ -27,7 +27,7 @@
 	"shuffle_buffer": 100,
 	"prefetch_buffer": 10,
 
-	"global_rounds_num": 10,
+	"global_rounds_num": 100,
 
 	"experiment_rounds_num": 1,
 	"experiment_id": "fedavg_test",
