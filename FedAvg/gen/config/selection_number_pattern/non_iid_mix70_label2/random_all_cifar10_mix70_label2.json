@@ -18,7 +18,7 @@
 
 	"global_rounds_num": 1000,
 
-	"experiment_rounds_num": 5,
+	"experiment_rounds_num": 2,
 	"experiment_id": "random_all_cifar10_mix70_label2",
 	
 	"logdir": "./log/selection_number_pattern/non_iid_mix70_label2",

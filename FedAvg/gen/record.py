@@ -134,7 +134,7 @@ class Recorder:
     def save_polt(self, plot_name_tag):
 
         if self.plot_global_round>1000:
-            self.ax.xaxis.set_minor_locator(ticker.MultipleLocator(100))
+            self.ax.xaxis.set_minor_locator(ticker.MultipleLocator(10))
         else:
             self.ax.xaxis.set_minor_locator(ticker.MultipleLocator(10))
 
@@ -146,13 +146,15 @@ class Recorder:
         plot_name = self.experiment_id +'_'+plot_name_tag+'.png'
         file_path = self.logdir+"/"+self.experiment_id+"/plot/"+plot_name
 
+        self.ax.set_title(self.experiment_id +'_'+plot_name_tag)
+
         print("save to ", file_path)
         
         os.makedirs(os.path.dirname(file_path), exist_ok=True)
         self.fig.savefig(file_path, dpi=300)
-
-        plt.ioff()  # Turn off the interactive mode
+        
         plt.show() 
+        plt.ioff()  # Turn off the interactive mode
 
     def plot_multiple_exp(self, configs_dir, configs):
         # convert the python float to np.float32
@@ -165,7 +167,6 @@ class Recorder:
                 return [convert_floats(v) for v in obj]
             return obj
 
-        self.ax.set_title(self.experiment_id)
         colors = ['b', 'g', 'r', 'c', 'm', 'y', 'k']
         plt.rc('axes', prop_cycle=(plt.cycler('color', colors)))
 
